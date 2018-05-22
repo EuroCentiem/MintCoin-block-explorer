@@ -1,0 +1,107 @@
+{
+    "coin": "MintCoin",
+    "symbol": "MINT",
+    "logging": {
+        "files": {
+            "level": "info",
+            "directory": "logs",
+            "flushInterval": 5
+        },
+
+        "console": {
+            "level": "info",
+            "colors": true
+        }
+    },
+    "poolServer": {
+        "enabled": true,
+        "clusterForks": "auto",
+        "poolAddress": "MkFUsLBrtQTZYtBAy8Fc4GSzoYcYGXW1gS",
+        "blockRefreshInterval": 1000,
+        "minerTimeout": 900,
+        "ports": [
+            {
+                "port": 0,
+                "difficulty": 0,
+                "desc": "Low end hardware"
+            },
+            {
+                "port": 0,
+                "difficulty": 0,
+                "desc": "Mid range hardware"
+            },
+            {
+                "port": 0,
+                "difficulty": 0,
+                "desc": "High end hardware"
+            }
+        ],
+        "varDiff": {
+            "minDiff": 2,
+            "maxDiff": 100000,
+            "targetTime": 100,
+            "retargetTime": 30,
+            "variancePercent": 30,
+            "maxJump": 100
+        },
+        "shareTrust": {
+            "enabled": true,
+            "min": 10,
+            "stepDown": 3,
+            "threshold": 10,
+            "penalty": 30
+        },
+        "banning": {
+            "enabled": true,
+            "time": 600,
+            "invalidPercent": 25,
+            "checkThreshold": 30
+        },
+        "slushMining": {
+            "enabled": false,
+            "weight": 300,
+            "lastBlockCheckRate": 1
+        }
+    },
+    "payments": {
+        "enabled": false,
+        "interval": 600,
+        "maxAddresses": 10,
+        "mixin": 0,
+        "transferFee": 1,
+        "minPayment": 10000,
+        "denomination": 100
+    },
+    "blockUnlocker": {
+        "enabled": true,
+        "interval": 30,
+        "depth": 20,
+        "poolFee": 1.8,
+        "devDonation": 0.1,
+        "coreDevDonation": 0.1
+    },
+    "api": {
+        "enabled": true,
+        "hashrateWindow": 600,
+        "updateInterval": 5,
+        "port": 8001,
+        "blocks": 30,
+        "payments": 30,
+        "password": "pass"
+    },
+    "daemon": {
+        "rpcuser":"mintcoinrpc",
+		"rpcpassword":"myamazingpassword",
+        "host": "127.0.0.1",
+        "port": 12789
+    },
+    "wallet": {
+        "host": "127.0.0.1",
+        "port": 12788
+    },
+    "redis": {
+        "host": "127.0.0.1",
+        "port": 6379,
+        "auth": null
+    }
+}
