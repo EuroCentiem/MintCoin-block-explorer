@@ -1,0 +1,281 @@
+<style>
+    .blocksStatHolder > span{
+        display: inline-block;
+        border-radius: 5px;
+        padding: 1px 9px;
+        border: 1px solid #e5e5e5;
+        margin: 2px;
+    }
+    .blocksStatHolder > span > span{
+        font-weight: bold;
+    }
+    #blocks_rows > tr > td{
+        vertical-align: middle;
+        font-family: 'Inconsolata', monospace;
+        font-size: 0.95em;
+        text-align: center;
+    }
+    .luckGood{
+        color: darkgreen;
+    }
+    .luckBad{
+        color: darkred;
+    }
+</style>
+
+<div class="blocksStatHolder">
+    <span class="bg-primary">Live Peers connected : <span id="peerLive"></span></span>
+    <span class="bg-info">Total recorded peers: <span id="peerTotal"></span></span>
+    <span class="bg-info">Last update: <span id="peerLastUpdate"></span></span>
+</div>
+
+<hr>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th><i class="fa fa-bars"></i> IP</th>
+            <th><i class="fa fa-link"></i> Port</th>
+            <th><i class="fa fa-unlock-alt"></i> Uptime</th>
+            <th><i class="fa fa-paw"></i> @Block</th>
+            <th><i class="fa fa-clock-o"></i> Time Found</th>
+            <th><i class="fa fa-star-half-o"></i> Luck</th>
+        </tr>
+        </thead>
+        <tbody id="blocks_rows">
+
+        </tbody>
+    </table>
+</div>
+
+<p class="text-center">
+    <button type="button" class="btn btn-default" id="loadMoreBlocks">Load More</button>
+</p>
+
+<script>
+
+    currentPage = {
+        destroy: function(){
+            if (xhrGetBlocks) xhrGetBlocks.abort();
+        },
+        update: function(){
+//       	console.log(lastStats.pool.peers);
+            updateText('peerTotal', lastStats.pool.stats.peerstotal);
+        	updateText('peerLive', lastStats.pool.stats.peerslive);
+        	updateText('peerLastUpdate', formatDate(lastStats.pool.stats.peerslastupdate)); 
+        	renderBlocks(lastStats.pool.peers);
+        }
+    };
+
+
+
+    var xhrGetBlocks;
+    $('#loadMoreBlocks').click(function(){
+        if (xhrGetBlocks) xhrGetBlocks.abort();
+    	
+        xhrGetBlocks = $.ajax({
+            url: api + '/get_peers',
+            data: {
+                height: $('#blocks_rows').children().last().data('height')
+            },
+        	
+            dataType: 'json',
+            cache: 'false',
+            success: function(data){
+             console.log($('#blocks_rows').children().last().data('height'));
+//            console.log(data)
+                renderBlocks(data);
+            }
+        });
+    });
+
+    function parseBlockPeers(serializedBlock){
+ //  		console.log('--'+serializedBlock)
+        var parts = serializedBlock.split('@:@');
+ //   	var I
+    		
+    		//console.log('--'+parts[0])
+        var block = {
+       		addr : parts[0],
+        	IP : "81.67.10.177",
+        	port : "12788",
+        	services : parts[1] , 
+        	lastsend : parts[2], 
+        	lastrecv :parts[3],
+        	conntime :parts[4],
+        	version : parts[5],
+        	subver : parts[6],
+        	inbound : parts[7], 
+        	releasetime :parts[8],
+        	startingheight : parts[9],
+        	banscore : parts[10],
+        	onlinescore : parts[11],
+        	height : parts[4],
+        	startingheight : parts[4],
+            height: 0,
+            hash: 0,
+            time: 0,
+            difficulty: 0,
+            shares: 0,
+            orphaned: 0,
+            reward: 0
+
+        };
+   	console.log(block);
+    
+    }
+
+    function parseBlock(height, serializedBlock){
+//    		console.log('--'+serializedBlock)
+        var parts = serializedBlock.split('@:');
+    		
+    		//console.log('--'+parts[0])
+        var block = {
+       		addr : "81.67.10.177:12788",
+        	IP : "81.67.10.177",
+        	port : "12788",
+        	services : "00000001" , 
+        	lastsend : "1526742772", 
+        	lastrecv :"1526742639",
+        	conntime :"1526565345",
+        	version : "60007",
+        	subver : "/MintCoin:2.0.2/",
+        	inbound : "false", 
+        	releasetime :"0",
+        	startingheight : "4673501",
+        	banscore : "0",
+            height: 0,
+            hash: 0,
+            time: 0,
+            difficulty: 0,
+            shares: 0,
+            orphaned: 0,
+            reward: 0
+        };
+
+        var toGo = lastStats.config.depth - (lastStats.network.height - block.height);
+        block.maturity = toGo < 1 ? '' : (toGo + ' to go');
+
+        switch (block.orphaned){
+            case '0':
+                block.status = 'unlocked';
+                break;
+            case '1':
+                block.status = 'orphaned';
+                break;
+            default:
+                block.status = 'pending';
+                break;
+        }
+
+        return block;
+    }
+
+
+
+    function getBlockRowElement(block, jsonString){
+
+        function formatLuck(difficulty, shares){
+            //Only an approximation to reverse the calculations done in pool.js, because the shares with their respective times are not recorded in redis
+            //Approximation assumes equal pool hashrate for the whole round
+            //Could potentially be replaced by storing the sum of all job.difficulty in the redis db. 
+            if (lastStats.config.slushMiningEnabled) {                                      //Uses integral calculus to calculate the average of a dynamic function
+                var accurateShares = 1/lastStats.config.blockTime * (                       //1/blockTime to get the average
+                    shares * lastStats.config.weight * (                                    //Basically calculates the 'area below the graph' between 0 and blockTime
+                        1 - Math.pow(
+                                Math.E, 
+                                ((- lastStats.config.blockTime) / lastStats.config.weight)  //blockTime is equal to the highest possible result of (dateNowSeconds - scoreTime)
+                            )
+                    )
+                );
+            }
+            else {
+                var accurateShares = shares;
+            }
+
+            if (difficulty > accurateShares){
+                var percent = 100 - Math.round(accurateShares / difficulty * 100);
+                return '<span class="luckGood">' + percent + '%</span>';
+            }
+            else{
+                var percent = (100 - Math.round(difficulty / accurateShares * 100)) * -1;
+                return '<span class="luckBad">' + percent + '%</span>';
+            }
+        }
+
+        function formatBlockLink(hash){
+            return '<a target="_blank" href="' + blockchainExplorer + hash + '">' + hash + '</a>';
+        }
+
+        var blockStatusClasses = {
+            'pending': '',
+            'unlocked': 'success',
+            'orphaned': 'danger'
+        };
+
+        var row = document.createElement('tr');
+        row.setAttribute('data-json', jsonString);
+        row.setAttribute('data-height', block.height);
+        row.setAttribute('id', 'blockRow' + block.height);
+        row.setAttribute('title', block.status);
+        row.className = blockStatusClasses['unlocked'];
+
+        var columns =
+            '<td>' + block.IP + '</td>' +
+            '<td>' + block.port + '</td>' +
+            '<td>' + formatDate(block.lastsend) + '</td>' +
+            '<td>' + formatDate(block.lastrecv) + '</td>' +
+            '<td>' + block.startingheight+ '</td>' +
+            '<td>' + block.inbound + '</td>';
+
+        row.innerHTML = columns;
+
+        return row;
+    }
+
+
+    function renderBlocks(blocksResults){
+
+        var $blocksRows = $('#blocks_rows');
+		var blockArray={};
+    	//	console.log(blocksResults);
+    	for (counter in blocksResults) {
+        	blockArray[counter] = parseBlockPeers(blocksResults[counter]);      
+        	//blockArray[counter].height=counter;
+        }
+    
+        for (var i = 0; i < blockArray.length; i += 1){
+        console.log(i);	
+
+            var block = blockArray[i];
+
+            var blockJson = JSON.stringify(block);
+			console.log(blockJson);
+            var existingRow = document.getElementById('blockRow' + block.height);
+
+            if (existingRow && existingRow.getAttribute('data-json') !== blockJson){
+                $(existingRow).replaceWith(getBlockRowElement(block, blockJson));
+            }
+            else if (!existingRow){
+
+                var blockElement = getBlockRowElement(block, blockJson);
+
+                var inserted = false;
+                var rows = $blocksRows.children().get();
+                for (var f = 0; f < rows.length; f++) {
+                    var bHeight = parseInt(rows[f].getAttribute('data-height'));
+                    if (bHeight < block.height){
+                        inserted = true;
+                        $(rows[f]).before(blockElement);
+                        break;
+                    }
+                }
+                if (!inserted)
+                    $blocksRows.append(blockElement);
+            }
+
+        }
+    }
+
+</script>
