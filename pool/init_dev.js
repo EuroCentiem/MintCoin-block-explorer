@@ -5,9 +5,9 @@ var os = require('os');
 var redis = require('redis');
 
 
-require('./lib/configReader.js');
+require('./lib_dev/configReader.js');
 
-require('./lib/logger.js');
+require('./lib_dev/logger.js');
 
 
 global.redisClient = redis.createClient(config.redis.port, config.redis.host, {auth_pass: config.redis.auth});
